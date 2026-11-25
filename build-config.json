@@ -1,0 +1,1 @@
+{"appId":"com.nosotros.desktop","productName":"Nosotros","directories":{"output":"dist"},"files":["main.cjs","preload.cjs","index.html","app.js","style.css","package.json"],"win":{"target":[{"target":"nsis","arch":["x64"]}]},"nsis":{"oneClick":false,"perMachine":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"artifactName":"Nosotros-Setup.exe"}}

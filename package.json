@@ -1,0 +1,20 @@
+{
+  "name": "nosotrosapp",
+  "version": "0.1.0",
+  "description": "Agenda privada para dos",
+  "main": "main.cjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Nosotros",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.2"
+  }
+}

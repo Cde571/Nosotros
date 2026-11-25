@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-native/
+native-payload/
+webview2/
+webview2.nupkg
+payload.zip
+.env
+.env.*
+*.log
