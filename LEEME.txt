@@ -1,12 +1,20 @@
-NOSOTROS. 0.2 — Windows x64
+NOSOTROS. 0.3 · Windows x64
 
-Instalador: dist-native\Nosotros-Setup.exe. Windows 64 bits con Microsoft Edge WebView2 Runtime (habitualmente preinstalado en Windows 11).
-1. Instala el mismo EXE en ambos computadores. Windows puede mostrar SmartScreen porque el instalador no está firmado.
-2. Puedes usar Inicio, Agenda, Compras, Viajes, Ideas, Buzón, Recuerdos y Metas sin configurar un servidor.
-3. Para conectar por internet, crea un proyecto en https://supabase.com y ejecuta schema.sql UNA VEZ en SQL Editor y luego migration-0.2.sql. Si ya instalaste el esquema de v0.1, ejecuta solo la migración. En Authentication habilita Email. Mantén las políticas de seguridad activas.
-4. En ambos equipos abre ⚙ y coloca la misma URL HTTPS del proyecto y su clave pública publishable/anon (NO service_role ni secret). Conectar servicio.
-5. Cada persona registra su propio correo y contraseña, confirma el correo si se requiere e inicia sesión.
-6. El primero pulsa Crear espacio y Generar código. El código dura 30 minutos. El segundo pulsa Vincularme con ese código. El primero aprueba la solicitud.
-7. El widget se activa desde la barra superior. Para cerrar por completo, usa Salir en el icono de bandeja.
+Un espacio privado para dos, con interfaz oscura sin barra blanca.
 
-Versión inicial: la aplicación móvil independiente, los widgets nativos de celular, las actualizaciones automáticas y la firma digital todavía no están incluidos. El servicio compartido requiere configuración y prueba con dos cuentas. No publicar datos sensibles antes de revisar la seguridad y copias de respaldo. Las sesiones se conservan localmente en el perfil de la aplicación. Los datos locales anteriores a la vinculación no se importan automáticamente al espacio compartido.
+1. Abre Ajustes y elige tu nombre, tu foto y su fecha especial.
+2. Crea su espacio y comparte el código con tu pareja.
+3. Tu pareja introduce el código y elige su propia foto.
+
+La conexión por código requiere un instalador preconfigurado con el servicio
+Supabase del propietario. Este paquete conserva el modo local si falta esa
+configuración. Nunca introduzcas una clave secreta en la aplicación.
+
+Los accesos rápidos se guardan en este dispositivo. Asocia un correo desde
+«Recuperar o proteger mi acceso» para poder entrar desde otro equipo.
+
+Las X de la app ocultan la ventana en la bandeja del sistema. Para cerrar
+completamente, usa Salir en el icono junto al reloj.
+
+El instalador no tiene firma digital. Requiere Microsoft Edge WebView2 Runtime.
+El código, las pruebas y las instrucciones están en el README del proyecto.

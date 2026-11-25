@@ -1,16 +1,379 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src https://*.supabase.co wss://*.supabase.co"><title>NOSOTROS.</title><link rel="stylesheet" href="style.css"></head><body>
-<header class="titlebar" id="titlebar"><div class="window-controls"><button id="winClose" title="Cerrar">×</button><button id="winMin" title="Minimizar">−</button><button id="winMax" title="Maximizar">+</button></div><div class="brand">nosotros<span>.</span></div><div class="headright"><span id="status">Modo local</span><div id="topFaces" class="faces"></div><button id="widget" title="Widget">▣</button><button id="settings" title="Ajustes">⚙</button></div></header>
-<div class="shell"><nav id="nav"></nav><main>
-<div id="home"><div class="grid">
-<section class="card timeline"><div class="heading"><div><h1>Timeline · esta semana</h1><p id="today" class="muted"></p><p id="greeting" class="sub"></p></div><button class="iconbtn" id="new" title="Nuevo plan">＋</button></div><div class="cal-tools"><button id="calendarToggle">Calendario mensual</button></div><div id="calendar" hidden></div><div id="agenda"></div><div class="next-mini"><p class="eyebrow">PRÓXIMO ENCUENTRO</p><h2 id="nextTitle">Un plan por escribir</h2><div id="countdown" class="big">—</div><p id="nextDetail" class="muted"></p></div></section>
-<section class="card moods"><div class="heading"><h2>Nuestros moods</h2></div><div id="moodCards" class="mood-grid"></div><button id="heart" class="heart">♡ Ping / Toque</button></section>
-<section class="card shopping"><div class="heading"><h2>Lista de compras</h2><button data-add="compra" class="iconbtn">＋</button></div><span class="sub">Compartida · marca lo que compraste</span><div id="compras"></div></section>
-<section class="card travel"><div class="heading"><h2>Próximos viajes y planes</h2><button data-add="viaje" class="iconbtn">＋</button></div><div class="trip-art" aria-hidden="true"><svg viewBox="0 0 260 82" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="82" fill="#5f6e68"/><circle cx="202" cy="20" r="13" fill="#e3bc82"/><path d="M0 60 62 10 125 59 180 27 260 63V82H0Z" fill="#394a43"/><path d="M0 71 92 41 150 68 225 39 260 65V82H0Z" fill="#75806a"/><path d="M82 67V40h30v27M77 41l20-16 20 16" fill="#d8b58e" stroke="#805843" stroke-width="3"/><path d="M96 67V51h8v16" fill="#5b453b"/></svg><span>Un lugar por descubrir</span></div><div id="viajes"></div></section>
-<section class="card milestone"><div class="heading"><h2>Días juntos</h2></div><p class="sub">Cada día cuenta.</p><div class="milestone-center"><div id="daysTogether" class="milestone-number">—</div><h2>Días juntos</h2><p id="anniversaryText" class="muted">Configura su fecha especial</p></div><button id="anniversaryBtn">Nuestra fecha</button></section>
-<section class="card notes"><div class="heading"><h2>Buzón de notas</h2><button data-add="nota" class="iconbtn">＋</button></div><div class="corkboard"><div id="notas"></div></div></section>
-<section class="card ideas"><div class="heading"><h2>Ideas para salir</h2><button data-add="idea" class="iconbtn">＋</button></div><div id="ideas"></div><button id="roulette">⟲ Elegir un plan al azar</button></section>
-<section class="card backlog"><div class="heading"><h2>Backlog / Ver juntos</h2><button data-add="recuerdo" class="iconbtn">＋</button></div><div class="posters" aria-hidden="true"><div class="poster p1">CINE</div><div class="poster p2">PLAY</div><div class="poster p3">MÚSICA</div><div class="poster p4">VIAJAR</div></div><div id="memories"></div></section>
-</div></div>
-<section id="module" class="card" hidden><div class="heading"><h2 id="moduleTitle"></h2><button id="moduleAdd">＋ Añadir</button></div><div id="moduleRows"></div></section></main></div>
-<dialog id="editor"><form id="itemForm"><div class="heading"><h2 id="editorTitle">Nuevo momento</h2><button type="button" data-close="editor">×</button></div><label>Categoría<select id="kind"><option value="plan">Plan / encuentro</option><option value="compra">Compra</option><option value="viaje">Viaje</option><option value="idea">Idea</option><option value="nota">Nota</option><option value="recuerdo">Recuerdo</option><option value="meta">Meta</option></select></label><label>Título<input id="title" required maxlength="160"></label><label>Fecha y hora<input type="datetime-local" id="day"></label><label>Detalles / presupuesto / enlace<textarea id="detail" maxlength="2000"></textarea></label><button class="primary" type="submit">Guardar</button></form></dialog>
-<dialog id="config"><div class="heading"><h2>Su pequeño universo.</h2><button data-close="config">×</button></div><p class="muted">Crea su espacio o introduce el código que te compartió tu pareja.</p><label>Tu nombre<input id="name" maxlength="80"></label><label>Tu foto de perfil<input id="photo" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Fecha de aniversario<input id="anniversary" type="date"></label><label>Cómo te sientes<select id="mood"><option>Extrañándote</option><option>Trabajando</option><option>En descanso</option><option>Pensando en ti</option><option>Libre para un plan</option><option>Prefiero no compartir</option></select></label><button id="localSave">Guardar perfil</button><hr><details id="advanced"><summary>Configuración del servicio</summary><p class="muted">Solo necesario si el instalador no tiene servidor configurado.</p><label>URL del proyecto<input id="url" placeholder="https://…supabase.co"></label><label>Clave pública<input id="key" type="password"></label><button id="connect">Conectar servicio</button></details><label>Correo<input id="email" type="email"></label><label>Contraseña<input id="password" type="password" minlength="8"></label><div class="actions"><button id="signup">Crear cuenta</button><button id="login">Iniciar sesión</button><button id="logout">Salir de cuenta</button></div><hr><div id="pairInfo"></div><div class="actions"><button id="create">Crear espacio</button><button id="invite">Generar código</button></div><label>Código de pareja<input id="code" autocomplete="off"></label><button id="join" class="primary">Vincularme</button><p id="message" role="status"></p></dialog><div id="toast" role="status"></div><script src="cloud-config.js"></script><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#181818" />
+    <meta
+      name="description"
+      content="Su espacio privado para compartir planes, pequeñas notas y días juntos."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'none'"
+    />
+    <title>NOSOTROS. · Nuestro pequeño mundo</title>
+    <link rel="icon" href="assets/heart.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#home">Ir a nuestro espacio</a>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="window-controls" aria-label="Controles de ventana">
+          <button
+            id="winClose"
+            title="Cerrar ventana"
+            aria-label="Cerrar ventana"
+          >
+            ×
+          </button>
+          <button id="winMin" title="Minimizar" aria-label="Minimizar">
+            −
+          </button>
+          <button id="winMax" title="Maximizar" aria-label="Maximizar">
+            +
+          </button>
+        </div>
+        <nav id="nav" aria-label="Navegación principal"></nav>
+        <div class="sidebar-bottom">
+          <button id="widget" class="nav-button" title="Activar widget">
+            <svg><use href="icons.svg#widget" /></svg><span>Widget</span>
+          </button>
+          <button id="settings" class="nav-button" title="Perfil y conexión">
+            <svg><use href="icons.svg#settings" /></svg><span>Ajustes</span>
+          </button>
+          <div
+            id="sideFaces"
+            class="side-faces"
+            aria-label="Nuestra pareja"
+          ></div>
+        </div>
+      </aside>
+      <main>
+        <header class="titlebar" id="titlebar">
+          <span class="brand">nosotros<span>.</span></span>
+          <div class="headright">
+            <button id="demoToggle" class="text-button">Ver ejemplo</button
+            ><button id="status" class="status" title="Abrir conexión">
+              Guardado en este equipo
+            </button>
+            <div id="topFaces" class="faces"></div>
+          </div>
+        </header>
+        <div id="demoBanner" class="demo-banner" hidden>
+          Vista de ejemplo · Estos datos son ilustrativos y no se
+          sincronizan.<button id="exitDemo">Volver a mi espacio</button>
+        </div>
+        <div id="home">
+          <div class="grid">
+            <section class="timeline" aria-labelledby="timelineTitle">
+              <div class="heading">
+                <div>
+                  <h1 id="timelineTitle">Timeline · esta semana</h1>
+                  <p id="today" class="muted"></p>
+                  <p id="greeting" class="sub">Nuestro pequeño mundo.</p>
+                </div>
+                <button
+                  class="iconbtn"
+                  id="new"
+                  title="Nuevo plan"
+                  aria-label="Añadir plan"
+                >
+                  +
+                </button>
+              </div>
+              <div class="cal-tools">
+                <button
+                  id="calendarToggle"
+                  class="text-button"
+                  aria-expanded="false"
+                >
+                  <svg><use href="icons.svg#calendar" /></svg> Ver calendario
+                </button>
+              </div>
+              <div id="calendar" hidden></div>
+              <div id="agenda"></div>
+              <div class="next-mini">
+                <p class="eyebrow">NUESTRO PRÓXIMO MOMENTO</p>
+                <h2 id="nextTitle">Algo bonito por planear</h2>
+                <div id="countdown" class="big">—</div>
+                <p id="nextDetail" class="muted">
+                  Las mejores historias empiezan con un plan.
+                </p>
+              </div>
+            </section>
+            <section class="card moods">
+              <div class="heading">
+                <h2>Nuestros moods</h2>
+                <svg class="small-icon"><use href="icons.svg#heart" /></svg>
+              </div>
+              <div id="moodCards" class="mood-grid"></div>
+              <button id="heart" class="heart">
+                <svg><use href="icons.svg#heart" /></svg> Ping / Toque
+              </button>
+            </section>
+            <section class="card shopping">
+              <div class="heading">
+                <h2>Lista de compras</h2>
+                <button
+                  data-add="compra"
+                  class="iconbtn"
+                  aria-label="Añadir compra"
+                >
+                  +
+                </button>
+              </div>
+              <span id="shoppingStatus" class="mini-label"
+                >Una lista para los dos</span
+              >
+              <div id="compras"></div>
+              <button class="inline-add" data-add="compra">
+                + Añadir a la lista
+              </button>
+            </section>
+            <section class="card travel">
+              <div class="heading">
+                <h2>Próximos viajes y planes</h2>
+                <button
+                  data-add="viaje"
+                  class="iconbtn"
+                  aria-label="Añadir viaje"
+                >
+                  +
+                </button>
+              </div>
+              <div id="viajes"></div>
+            </section>
+            <section class="card milestone">
+              <div class="heading"><h2>Días juntos</h2></div>
+              <p class="sub">Una historia que sigue creciendo.</p>
+              <div class="milestone-center">
+                <div id="daysTogether" class="milestone-number">—</div>
+                <h2>Días juntos</h2>
+                <p id="anniversaryText" class="muted">Su fecha, su comienzo.</p>
+              </div>
+              <button id="anniversaryBtn" class="text-button">
+                Nuestra fecha especial
+              </button>
+            </section>
+            <section class="card notes">
+              <div class="heading">
+                <div>
+                  <h2>Buzón de notas</h2>
+                  <p class="sub" id="noteCount">0 notas</p>
+                </div>
+                <button
+                  data-add="nota"
+                  class="iconbtn"
+                  title="Escribir una nota"
+                  aria-label="Escribir una nota"
+                >
+                  <svg><use href="icons.svg#clip" /></svg>
+                </button>
+              </div>
+              <div class="corkboard"><div id="notas"></div></div>
+              <button class="inline-add note-add" data-add="nota">+ Añadir nota</button>
+            </section>
+            <section class="card ideas">
+              <div class="heading">
+                <h2>Ideas para salir</h2>
+                <button
+                  data-add="idea"
+                  class="iconbtn"
+                  aria-label="Añadir idea"
+                >
+                  +
+                </button>
+              </div>
+              <div id="ideas"></div>
+            </section>
+            <section class="card backlog">
+              <div class="heading">
+                <h2>Backlog / Ver juntos</h2>
+                <button
+                  data-add="recuerdo"
+                  class="iconbtn"
+                  aria-label="Añadir algo para ver juntos"
+                >
+                  +
+                </button>
+              </div>
+              <div id="memories" class="posters"></div>
+              <button id="roulette" class="roulette">
+                <svg><use href="icons.svg#dice" /></svg> Elegir un plan al azar
+              </button>
+            </section>
+          </div>
+        </div>
+        <section id="module" class="card module" hidden>
+          <div class="heading">
+            <div>
+              <p class="eyebrow">NUESTRO ESPACIO</p>
+              <h1 id="moduleTitle"></h1>
+            </div>
+            <button id="moduleAdd" class="primary">+ Añadir</button>
+          </div>
+          <div id="moduleRows"></div>
+        </section>
+      </main>
+    </div>
+    <dialog id="editor">
+      <form id="itemForm">
+        <div class="heading">
+          <h2 id="editorTitle">Nuevo momento</h2>
+          <button
+            type="button"
+            data-close="editor"
+            class="iconbtn"
+            aria-label="Cerrar editor"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          >Categoría<select id="kind">
+            <option value="plan">Plan / encuentro</option>
+            <option value="compra">Compra</option>
+            <option value="viaje">Viaje</option>
+            <option value="idea">Idea</option>
+            <option value="nota">Nota</option>
+            <option value="recuerdo">Para ver juntos</option>
+            <option value="meta">Meta</option>
+          </select></label
+        ><label
+          ><span id="titleLabel">Título</span><input
+            id="title"
+            required
+            maxlength="160"
+            placeholder="Algo que les haga ilusión" /></label
+        ><label id="dateField">Fecha y hora<input type="datetime-local" id="day" /></label
+        ><label
+          ><span id="detailLabel">Detalles</span><textarea
+            id="detail"
+            maxlength="2000"
+            placeholder="El lugar, un recordatorio, ese pequeño detalle…"
+          ></textarea>
+        </label>
+        <p id="editorError" class="form-message" role="alert"></p>
+        <button id="editorSave" class="primary full" type="submit">Guardar momento</button>
+      </form>
+    </dialog>
+    <dialog id="config">
+      <div class="heading">
+        <div>
+          <p class="eyebrow">SOLO USTEDES DOS</p>
+          <h2>Su pequeño universo.</h2>
+        </div>
+        <button data-close="config" class="iconbtn" aria-label="Cerrar ajustes">
+          ×
+        </button>
+      </div>
+      <p class="muted intro">
+        Tu nombre, tu foto y el código de tu persona favorita. Lo demás se
+        guarda automáticamente.
+      </p>
+      <div class="profile-fields">
+        <div id="profilePreview"></div>
+        <div>
+          <label
+            >Tu nombre<input
+              id="name"
+              maxlength="80"
+              autocomplete="given-name"
+              placeholder="¿Cómo te llama tu pareja?" /></label
+          ><label class="photo-label"
+            >Elegir tu foto<input
+              id="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+          /></label>
+        </div>
+      </div>
+      <div class="two-fields">
+        <label>Su fecha especial<input id="anniversary" type="date" /></label
+        ><label
+          >Cómo te sientes<select id="mood">
+            <option>Extrañándote</option>
+            <option>Trabajando</option>
+            <option>En descanso</option>
+            <option>Pensando en ti</option>
+            <option>Libre para un plan</option>
+            <option>Prefiero no compartir</option>
+          </select></label
+        >
+      </div>
+      <button id="localSave" class="full">Guardar mi perfil</button>
+      <div class="pair-panel">
+        <div id="pairInfo"></div>
+        <div id="pairActions">
+          <button id="create" class="primary full">
+            Crear nuestro espacio y obtener código
+          </button>
+          <div class="or"><span>o introduce el código de tu pareja</span></div>
+          <label class="sr-only" for="code">Código de pareja</label>
+          <div class="code-fields">
+            <input
+              id="code"
+              maxlength="16"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="CÓDIGO DE PAREJA"
+            /><button id="join" class="primary">Vincularme</button>
+          </div>
+        </div>
+        <div id="invitePanel" hidden>
+          <p class="sub">
+            Comparte este código con tu pareja. Vence en 30 minutos.
+          </p>
+          <div class="invite-code">
+            <output id="inviteCode"></output
+            ><button id="copyCode">Copiar</button>
+          </div>
+          <button id="invite" class="text-button">Generar otro código</button>
+        </div>
+      </div>
+      <p id="message" class="form-message" role="status" aria-live="polite"></p>
+      <details class="account">
+        <summary>Recuperar o proteger mi acceso</summary>
+        <p class="muted">
+          El acceso rápido queda guardado en este equipo. Asocia un correo para
+          recuperarlo en otro dispositivo.
+        </p>
+        <label
+          >Correo<input id="email" type="email" autocomplete="email" /></label
+        ><label
+          >Contraseña<input
+            id="password"
+            type="password"
+            minlength="8"
+            autocomplete="current-password"
+        /></label>
+        <div class="actions">
+          <button id="signup">Asociar correo</button
+          ><button id="login">Iniciar sesión</button
+          ><button id="logout">Cerrar sesión</button>
+        </div>
+      </details>
+      <details id="advanced">
+        <summary>Configuración del servicio</summary>
+        <p class="muted">Se configura una vez al preparar el instalador.</p>
+        <label
+          >URL del proyecto<input
+            id="url"
+            type="url"
+            placeholder="https://…supabase.co" /></label
+        ><label
+          >Clave pública<input
+            id="key"
+            type="password"
+            autocomplete="off" /></label
+        ><button id="connect">Conectar servicio</button>
+      </details>
+    </dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="bridge.js"></script>
+    <script src="cloud-config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

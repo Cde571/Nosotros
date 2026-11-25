@@ -8,3 +8,9 @@ payload.zip
 .env
 .env.*
 *.log
+
+bridge.js
+smoke-result.json
+preview-result.json
+.output/
+supabase/.temp/

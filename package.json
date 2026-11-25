@@ -1,20 +1,26 @@
 {
   "name": "nosotrosapp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agenda privada para dos",
   "main": "main.cjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron .",
+    "dev": "node scripts/dev.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "build:ui": "esbuild browser-bridge.js --bundle --platform=browser --minify --outfile=bridge.js",
+    "build:native": "powershell -ExecutionPolicy Bypass -File build-native.ps1",
+    "setup:cloud": "node scripts/setup-cloud.cjs"
   },
   "keywords": [],
   "author": "Nosotros",
   "license": "ISC",
   "devDependencies": {
+    "@electric-sql/pglite": "0.6.0",
     "electron": "^45.5.0",
     "electron-builder": "^26.18.0",
     "esbuild": "^0.28.2"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.2"
+    "@supabase/supabase-js": "2.119.2"
   }
 }
