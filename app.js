@@ -40,9 +40,14 @@ const cats = {
   idea: ["Ideas", "idea"],
   nota: ["Buzón", "note"],
   recuerdo: ["Ver juntos", "photo"],
+  memoria: ["Recuerdos", "heart"],
   meta: ["Metas", "goal"],
 };
 const covers = ["orbita", "bosque", "verano", "viaje"];
+const catalog = window.NosotrosCatalog;
+const catalogKinds = new Set(["recuerdo", "viaje"]);
+let catalogChoice = null;
+let catalogRequest = 0;
 const datefmt = new Intl.DateTimeFormat("es-CO", {
   weekday: "long",
   day: "numeric",
@@ -143,6 +148,7 @@ function makeDemo() {
     day: offset === null ? "" : day(offset),
     done: i === 4 || i === 5,
     author: i % 2 ? "Él" : "Ella",
+    author_id: i % 2 === 0 && i !== 8 ? "demo-me" : "demo-other",
     votes: i === 9 ? ["demo-me", "demo-other"] : i === 10 ? ["demo-me"] : [],
     deleted: false,
     updated_at: new Date().toISOString(),
@@ -177,6 +183,13 @@ function render() {
   );
   $("home").hidden = active !== "home";
   $("module").hidden = active === "home";
+  $("together").hidden = active !== "recuerdo";
+  journey.clearPhotos();
+  together.setContext(
+    active === "recuerdo",
+    !demo && space?.approved ? space.id : "",
+    !demo && space?.approved && space.members.filter((m) => m.approved).length === 2,
+  );
   const live = items()
     .filter((x) => !x.deleted && x.kind !== "latido")
     .sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""));
@@ -190,20 +203,36 @@ function render() {
     "compra",
   );
   drawTrips(live.filter((x) => x.kind === "viaje"));
-  const notes = live.filter((x) => x.kind === "nota");
-  $("noteCount").textContent = notes.length + (notes.length === 1 ? " nota" : " notas");
+  const notes = live.filter((x) => x.kind === "nota" && !x.plan_id);
+  const ideas = live.filter((x) => x.kind === "idea");
+  $("noteCount").textContent =
+    notes.length + (notes.length === 1 ? " nota" : " notas");
   drawNotes("notas", notes);
-  draw("ideas", live.filter((x) => x.kind === "idea"), "idea");
+  draw("ideas", ideas, "idea");
   drawPosters(live.filter((x) => x.kind === "recuerdo"));
   if (active !== "home") {
     $("moduleTitle").textContent = cats[active][0];
-    $("moduleAdd").textContent = active === "nota" ? "+ Añadir nota" : "+ Añadir";
-    if (active === "nota") drawNotes("moduleRows", notes);
-    else draw("moduleRows", live.filter((x) => x.kind === active), active);
+    $("moduleAdd").hidden = active === "memoria";
+    $("moduleRows").classList.toggle("memory-grid", active === "memoria");
+    $("moduleAdd").textContent =
+      active === "nota"
+        ? "+ Añadir nota"
+        : active === "recuerdo"
+          ? "+ Añadir a pendientes"
+          : "+ Añadir";
+    if (active === "memoria") journey.gallery($("moduleRows"), live.filter((entry) => entry.plan_id));
+    else if (active === "nota") drawNotes("moduleRows", notes);
+    else
+      draw(
+        "moduleRows",
+        live.filter((x) => x.kind === active),
+        active,
+      );
   }
   const upcoming = plans.find(
     (x) => !x.done && x.day && new Date(x.day) > new Date(),
   );
+  journey.highlights(ideas, notes, upcoming);
   $("nextTitle").textContent = upcoming?.title || "Algo bonito por planear";
   $("nextDetail").textContent =
     upcoming?.detail || "Las mejores historias empiezan con un plan.";
@@ -249,6 +278,35 @@ function controls(x, showLabels = false) {
   tools.append(editButton, del);
   return tools;
 }
+function remoteCover(kind, media, fallback = "") {
+  const image = node("img");
+  image.alt = "";
+  image.loading = "lazy";
+  image.referrerPolicy = "no-referrer";
+  const external = catalog.imageFor(kind, media);
+  if (external) {
+    image.onerror = () => {
+      image.onerror = null;
+      if (fallback) image.src = fallback;
+      else image.hidden = true;
+    };
+  }
+  if (external || fallback) image.src = external || fallback;
+  else image.hidden = true;
+  return image;
+}
+function sourceButton(kind, media) {
+  const url = catalog.sourceFor(kind, media);
+  if (!url) return null;
+  return button(kind === "recuerdo" ? "Ficha en IMDb" : media.credit || "Crédito de la foto",
+    () => desktop.openMedia(url), "text-button catalog-source");
+}
+function itemVideoButton(x) {
+  const label = x.media?.youtube ? "Video guardado" : x.kind === "recuerdo" ? "Tráiler" : "Videos";
+  const control = button(label, () => openItemVideo(x.kind, x), "text-button");
+  control.setAttribute("aria-label", label + " de " + x.title);
+  return control;
+}
 function check(x) {
   const b = button(
     x.done ? "✓" : "",
@@ -268,6 +326,10 @@ function draw(id, list, kind) {
   if (!list.length) return empty(el, kind);
   for (const x of list) {
     const row = node("article", null, "row" + (x.done ? " done" : ""));
+    if (id === "moduleRows" && (kind === "plan" || kind === "idea")) {
+      row.id = "journey-" + x.id;
+      row.tabIndex = -1;
+    }
     if (kind === "idea" && id === "ideas")
       row.append(node("span", "✦", "idea-symbol"));
     else row.append(check(x));
@@ -282,6 +344,25 @@ function draw(id, list, kind) {
             .join(" · "),
         ),
       );
+    if (catalogKinds.has(kind)) {
+      const art = catalog.imageFor(kind, x.media);
+      if (art) {
+        const image = remoteCover(kind, x.media);
+        image.className = "catalog-row-art";
+        row.append(image);
+      }
+      if (x.media?.subtitle) body.append(node("small", x.media.subtitle));
+      const links = node("div", null, "catalog-links");
+      const source = sourceButton(kind, x.media);
+      if (source) links.append(source);
+      links.append(itemVideoButton(x));
+      body.append(links);
+    }
+    if (kind === "idea") body.append(journey.idea(x));
+    if (kind === "plan") {
+      const step = journey.plan(x);
+      if (step) body.append(step);
+    }
     row.append(body);
     if (kind === "idea") {
       const votes = x.votes || [];
@@ -333,6 +414,8 @@ function drawAgenda(list) {
       controls(x),
     );
     card.append(footer);
+    const step = journey.plan(x);
+    if (step) card.append(step);
     entry.append(label, card);
     el.append(entry);
   });
@@ -349,12 +432,14 @@ function drawTrips(list) {
   }
   for (const x of list) {
     const trip = node("article", null, "trip");
-    const cover = node("div", null, "trip-cover"),
-      img = node("img");
-    img.src = "assets/villa-de-leyva.png";
-    img.alt = "Villa de Leyva, imagen de inspiración";
+    const cover = node("div", null, "trip-cover");
+    const illustration = !x.media?.id && /villa de leyva/i.test(x.title)
+      ? "assets/villa-de-leyva.png"
+      : "";
+    const img = remoteCover("viaje", x.media, illustration);
     const body = node("div");
     body.append(node("strong", x.title));
+    if (x.media?.subtitle) body.append(node("p", x.media.subtitle));
     const remaining = x.day
       ? Math.ceil((new Date(x.day) - new Date()) / 86400000)
       : null;
@@ -374,10 +459,13 @@ function drawTrips(list) {
     trip.append(cover);
     if (x.detail) trip.append(node("p", x.detail, "sub"));
     const tools = node("div", null, "trip-buttons");
+    const source = sourceButton("viaje", x.media);
+    if (source) trip.append(source);
     tools.append(
       button(x.done ? "✓ Completado" : "○ Por hacer", () =>
         save({ ...x, done: !x.done }),
       ),
+      itemVideoButton(x),
       controls(x),
     );
     trip.append(tools);
@@ -388,11 +476,19 @@ function drawNotes(id, list) {
   const el = $(id);
   el.replaceChildren();
   if (!list.length) {
-    const p = node("div", "Escribe algo para recordar o compartir.", "empty-note");
-    p.append(button("Usar una nota de ejemplo", () => edit("nota", null, {
-      title: "Un recordatorio con cariño",
-      detail: "No olvides tomar agüita. Te amo.",
-    })));
+    const p = node(
+      "div",
+      "Escribe algo para recordar o compartir.",
+      "empty-note",
+    );
+    p.append(
+      button("Usar una nota de ejemplo", () =>
+        edit("nota", null, {
+          title: "Un recordatorio con cariño",
+          detail: "No olvides tomar agüita. Te amo.",
+        }),
+      ),
+    );
     return el.append(p);
   }
   for (const x of list) {
@@ -427,9 +523,7 @@ function drawPosters(list) {
       "poster" + (x.done ? " done" : ""),
     );
     b.title = x.title;
-    const img = node("img");
-    img.src = "assets/" + covers[i % 4] + ".svg";
-    img.alt = "";
+    const img = remoteCover("recuerdo", x.media, "assets/" + covers[i % 4] + ".svg");
     b.append(img, node("span", x.title));
     el.append(b);
   }
@@ -476,30 +570,119 @@ function calendar(plans) {
   $("calendar").replaceChildren(cal);
 }
 function updateEditor() {
-  const isNote = $("kind").value === "nota";
+  const kind = $("kind").value;
+  const isNote = kind === "nota";
   $("editorTitle").textContent = isNote
-    ? (editing ? "Editar nota" : "Nueva nota")
-    : (editing ? "Editar momento" : "Nuevo momento");
+    ? editing
+      ? "Editar nota"
+      : "Nueva nota"
+    : editing
+      ? "Editar momento"
+      : "Nuevo momento";
   $("titleLabel").textContent = "Título";
-  $("title").placeholder = isNote ? "Ponle un título a tu nota" : "Algo que les haga ilusión";
+  $("title").placeholder = isNote
+    ? "Ponle un título a tu nota"
+    : "Algo que les haga ilusión";
   $("detailLabel").textContent = isNote ? "Nota" : "Detalles";
-  $("detail").placeholder = isNote ? "Escribe tu mensaje…" : "El lugar, un recordatorio, ese pequeño detalle…";
+  $("detail").placeholder = isNote
+    ? "Escribe tu mensaje…"
+    : "El lugar, un recordatorio, ese pequeño detalle…";
   $("dateField").hidden = isNote;
+  $("day").required = Boolean(editing?.idea_id);
   $("editorSave").textContent = isNote ? "Guardar nota" : "Guardar momento";
+  $("itemCatalog").hidden = !catalogKinds.has(kind);
+  $("itemCatalog").dataset.kind = kind;
+  $("catalogLabel").textContent = kind === "recuerdo" ? "Buscar película o serie" : "Buscar ciudad de Colombia";
+  $("catalogQuery").placeholder = kind === "recuerdo" ? "Título de la película o serie" : "Ciudad o municipio";
+  drawCatalogChoice();
+}
+function drawCatalogChoice() {
+  const kind = $("kind").value;
+  const choice = $("catalogChoice");
+  choice.replaceChildren();
+  const current = catalogChoice;
+  const source = sourceButton(kind, current);
+  if (current?.id) {
+    const info = node("div");
+    info.append(node("strong", current.name || $("title").value), node("small", current.subtitle || ""));
+    if (source) info.append(source);
+    info.append(button("Quitar ficha", () => {
+      catalogChoice = current.youtube ? { youtube: current.youtube } : null;
+      drawCatalogChoice();
+      $("catalogQuery").focus();
+    }, "text-button"));
+    choice.append(remoteCover(kind, current), info);
+  }
+  if (editing?.kind === kind) choice.append(itemVideoButton(editing));
+  choice.hidden = !choice.children.length;
+}
+function clearCatalogSearch() {
+  ++catalogRequest;
+  $("catalogSearch").disabled = false;
+  $("catalogResults").replaceChildren();
+  $("catalogStatus").textContent = "";
+}
+async function searchCatalog() {
+  const query = $("catalogQuery").value.trim();
+  const kind = $("kind").value;
+  if (!catalogKinds.has(kind) || $("catalogSearch").disabled) return;
+  if (query.length < 2) {
+    $("catalogStatus").textContent = "Escribe al menos dos caracteres.";
+    return;
+  }
+  clearCatalogSearch();
+  const request = catalogRequest;
+  $("catalogSearch").disabled = true;
+  $("catalogStatus").textContent = "Buscando…";
+  try {
+    const entries = await (kind === "recuerdo" ? catalog.films(query) : catalog.destinations(query));
+    if (request !== catalogRequest || !$("editor").open) return;
+    for (const entry of entries) {
+      const option = button("", () => {
+        const { id, title, subtitle, image, file, credit } = entry;
+        const youtube = catalogChoice?.id === id ? catalogChoice.youtube : "";
+        catalogChoice = { id, name: title, subtitle };
+        if (youtube) catalogChoice.youtube = youtube;
+        if (image && file) Object.assign(catalogChoice, { image, file });
+        if (credit) catalogChoice.credit = credit;
+        $("title").value = title;
+        clearCatalogSearch();
+        drawCatalogChoice();
+        $("title").focus();
+      }, "catalog-result");
+      const text = node("div");
+      text.append(node("strong", entry.title), node("small", entry.subtitle));
+      option.append(remoteCover(kind, entry), text);
+      $("catalogResults").append(option);
+    }
+    $("catalogStatus").textContent = entries.length
+      ? "Selecciona un resultado para añadir su ficha."
+      : "No encontramos coincidencias. Puedes escribir el título a mano.";
+  } catch (error) {
+    if (request === catalogRequest) $("catalogStatus").textContent = error.message;
+  } finally {
+    if (request === catalogRequest) $("catalogSearch").disabled = false;
+  }
 }
 function edit(kind, x, draft = x) {
   editing = x || null;
+  catalogChoice = catalogKinds.has(kind) ? draft?.media || null : null;
+  clearCatalogSearch();
   $("kind").value = kind;
+  $("kind").disabled = Boolean(x?.idea_id || (x && items().some((item) => item.idea_id === x.id)));
   $("title").value = draft?.title || "";
+  $("catalogQuery").value = catalogKinds.has(kind) ? draft?.title || "" : "";
   $("day").value = x?.day || "";
   $("detail").value = draft?.detail || "";
   const conflict = conflicts.get(x?.id);
   $("editorError").textContent = conflict
-    ? "Tu pareja guardó «" + conflict.title + "». Revisa tu versión antes de guardarla."
+    ? "Tu pareja guardó «" +
+      conflict.title +
+      "». Revisa tu versión antes de guardarla."
     : "";
   updateEditor();
   $("editor").showModal();
-  $("title").focus();
+  (catalogKinds.has(kind) && !x ? $("catalogQuery") : $("title")).focus();
 }
 function save(value) {
   const x = { ...value, updated_at: new Date().toISOString() };
@@ -527,13 +710,28 @@ function save(value) {
   render();
   sync();
 }
-$("kind").onchange = updateEditor;
+$("kind").onchange = () => {
+  catalogChoice = editing?.kind === $("kind").value ? editing.media || null : null;
+  clearCatalogSearch();
+  $("catalogQuery").value = $("title").value;
+  updateEditor();
+};
+$("catalogSearch").onclick = searchCatalog;
+$("catalogQuery").onkeydown = (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  event.preventDefault();
+  searchCatalog();
+};
+$("editor").addEventListener("close", clearCatalogSearch);
 $("itemForm").onsubmit = (e) => {
   e.preventDefault();
   const title = $("title").value.trim();
   const kind = $("kind").value;
   if (!title) {
-    $("editorError").textContent = kind === "nota" ? "Escribe un título para tu nota." : "Escribe un título para su momento.";
+    $("editorError").textContent =
+      kind === "nota"
+        ? "Escribe un título para tu nota."
+        : "Escribe un título para su momento.";
     return;
   }
   save({
@@ -541,11 +739,18 @@ $("itemForm").onsubmit = (e) => {
     id: editing?.id || crypto.randomUUID(),
     kind,
     title,
-    day: kind === "nota" ? (editing?.kind === "nota" ? editing.day : "") : $("day").value,
+    media: catalogKinds.has(kind) ? catalogChoice : null,
+    day:
+      kind === "nota"
+        ? editing?.kind === "nota"
+          ? editing.day
+          : ""
+        : $("day").value,
     detail: $("detail").value.trim(),
     done: editing?.done || false,
     deleted: false,
     author: editing?.author || (demo ? "Ella" : cfg.name || "Yo"),
+    author_id: editing ? editing.author_id : demo ? "demo-me" : user,
   });
   $("editor").close();
   toast(
@@ -853,7 +1058,9 @@ async function pair(op) {
       msg("Ya están conectados. Cada persona puede elegir su foto.");
       toast("Bienvenidos a su espacio compartido.");
     } else if (space?.approved) {
-      msg("Vinculación guardada. La sincronización se reintentará al conectar.");
+      msg(
+        "Vinculación guardada. La sincronización se reintentará al conectar.",
+      );
     }
   }
 }
@@ -960,6 +1167,7 @@ async function syncSpace() {
     online = true;
     persist();
     render();
+    together.refresh();
     pairView();
     if (conflict && $("config").open)
       msg(
@@ -973,6 +1181,72 @@ async function syncSpace() {
     updateStatus();
   }
 }
+const together = window.createTogether({ call });
+const journey = window.createJourney({
+  $, node, button, items, call, sync, save, toast,
+  context: () => ({ demo, space, user }),
+  editNote: (note) => edit("nota", note),
+  async flush(id) {
+    if (demo) return;
+    if (syncing) await syncing;
+    if (!queue.some((item) => item.id === id)) return;
+    await sync();
+    if (queue.some((item) => item.id === id))
+      throw Error("El cambio anterior sigue pendiente de sincronización.");
+  },
+  navigate(kind, id) {
+    active = kind;
+    render();
+    if (!id) return;
+    const row = document.getElementById("journey-" + id);
+    row?.focus({ preventScroll: true });
+    row?.scrollIntoView({ block: "nearest" });
+  },
+});
+let videoItem = null;
+let selectedItemVideo = "";
+const itemPlayer = window.createNosotrosPlayer($("itemYoutube"), {
+  search: (query) => {
+    if (demo || !space?.approved || space.members.filter((member) => member.approved).length !== 2)
+      throw Object.assign(Error(), { code: "pair_required" });
+    return call("youtube-search", { space: space.id, query });
+  },
+  loaded: (id) => {
+    selectedItemVideo = id;
+    $("saveItemVideo").hidden = !id || !videoItem;
+  },
+});
+function openItemVideo(kind, item = null) {
+  videoItem = item ? { id: item.id, kind, space: space?.id, demo } : null;
+  const label = kind === "recuerdo" ? "Tráilers" : "Videos de viajes";
+  const title = item?.media?.name || item?.title;
+  $("itemYoutubeTitle").textContent = title ? label + " · " + title : label;
+  const query = title ? title + (kind === "recuerdo" ? " tráiler" : " Colombia viaje") : "";
+  itemPlayer.reset(query, item?.media?.youtube);
+  $("itemYoutube").showModal();
+}
+$("itemYoutube").addEventListener("close", () => {
+  videoItem = null;
+  itemPlayer.reset();
+});
+$("travelVideos").onclick = () => openItemVideo("viaje");
+$("backlogVideos").onclick = () => openItemVideo("recuerdo");
+$("saveItemVideo").onclick = () => {
+  if (!videoItem || !selectedItemVideo || videoItem.demo !== demo || videoItem.space !== space?.id) return;
+  const row = items().find(({ id, kind, deleted }) => id === videoItem.id && kind === videoItem.kind && !deleted);
+  if (!row) {
+    itemPlayer.status.textContent = "Esta ficha ya no está disponible.";
+    return;
+  }
+  const media = { ...row.media, youtube: selectedItemVideo };
+  save({ ...row, media });
+  if (editing?.id === row.id && $("editor").open) {
+    editing = { ...editing, media };
+    catalogChoice = { ...catalogChoice, youtube: selectedItemVideo };
+    drawCatalogChoice();
+  }
+  itemPlayer.status.textContent = "Video guardado en la ficha.";
+};
 $("new").onclick = () => edit("plan");
 $("moduleAdd").onclick = () => edit(active);
 document
@@ -1033,6 +1307,50 @@ $("roulette").onclick = () => {
 $("settings").onclick = settings;
 $("status").onclick = settings;
 $("anniversaryBtn").onclick = settings;
+const appVersion = desktop.getVersion();
+appVersion
+  .then((version) => {
+    $("updateVersion").textContent = "Versión instalada " + version;
+  })
+  .catch(() => {});
+
+$("checkUpdate").onclick = async () => {
+  const button = $("checkUpdate");
+  const status = $("updateStatus");
+  const parse = (value) =>
+    /^(?:v)?\d{1,7}\.\d{1,7}\.\d{1,7}$/.test(value)
+      ? value.replace(/^v/, "").split(".").map(Number)
+      : null;
+  button.disabled = true;
+  status.textContent = "Buscando actualizaciones…";
+  try {
+    const response = await fetch(
+      "https://api.github.com/repos/Cde571/Nosotros/releases/latest",
+      {
+        headers: { Accept: "application/vnd.github+json" },
+        signal: AbortSignal.timeout(8000),
+      },
+    );
+    if (!response.ok) throw Error("GitHub no respondió");
+    const release = await response.json();
+    const current = parse(await appVersion);
+    const latest = parse(release.tag_name);
+    if (!current || !latest || release.draft || release.prerelease)
+      throw Error("Versión no válida");
+    const difference =
+      latest.map((part, i) => part - current[i]).find(Boolean) || 0;
+    status.textContent =
+      difference > 0
+        ? "GitHub publicó la versión " +
+          latest.join(".") +
+          ". La instalación desde la app todavía requiere un instalador firmado."
+        : "Tienes la versión más reciente disponible.";
+  } catch {
+    status.textContent = "No pudimos comprobar la versión. Intenta de nuevo.";
+  } finally {
+    button.disabled = false;
+  }
+};
 $("localSave").onclick = () => {
   saveProfile();
   msg("Perfil guardado.");

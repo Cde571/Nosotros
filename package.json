@@ -21,6 +21,7 @@
     "esbuild": "^0.28.2"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.119.2"
+    "@supabase/supabase-js": "2.119.2",
+    "pdfjs-dist": "6.5.438"
   }
 }

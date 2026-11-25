@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { createCloud } from "./cloud-client.cjs";
+import { version } from "./package.json";
 if (!window.desktop) {
   const callbacks = {};
   const emit = (name, value) =>
@@ -7,6 +8,11 @@ if (!window.desktop) {
   const host = (op, values = {}) =>
     window.chrome?.webview?.postMessage({ op, ...values });
   window.desktop = {
+    getVersion: async () => version,
+    openMedia: (url) =>
+      window.chrome?.webview
+        ? host("open-media", { url })
+        : window.open(url, "_blank", "noopener"),
     window: (action) => host("window", { action }),
     widget: async (on) => {
       host("widget", { on });

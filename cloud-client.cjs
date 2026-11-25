@@ -89,7 +89,76 @@ function createCloud(createClient, emit) {
         result = await client.rpc("save_item", { payload: p.item });
       else if (op === "vote")
         result = await client.rpc("vote_item", { item_id: p.id });
-      else if (op === "sub") {
+      else if (op === "journey")
+        result = await client.rpc("journey_action", {
+          target: p.space,
+          source: p.id,
+          action: p.action,
+          details: p.details,
+        });
+      else if (op === "memory-upload" || op === "memory-download") {
+        const bucket = client.storage.from("nosotros-memories");
+        const key = p.space + "/" + p.plan + "/" + p.photo + ".jpg";
+        if (op === "memory-upload") {
+          result = await bucket.upload(key, p.bytes, { contentType: "image/jpeg" });
+          // A retry can find the same photo already uploaded after a lost response.
+          if (String(result.error?.statusCode) === "409") return { ok: true };
+        } else {
+          result = await bucket.download(key);
+          if (result.error) throw result.error;
+          return { ok: true, data: await result.data.arrayBuffer() };
+        }
+      }
+      else if (op === "youtube-search") {
+        result = await client.functions.invoke("youtube-search", {
+          body: { space: p.space, query: p.query },
+          timeout: 20000,
+        });
+        if (result.error) {
+          const context = result.error.context;
+          const body = await context?.json?.().catch(() => null);
+          return { ok: false, code: body?.code ?? "unavailable", error: "No pudimos buscar en YouTube." };
+        }
+      } else if (op === "together-state")
+        result = await client.rpc("together_state", { target: p.space });
+      else if (op === "together-action")
+        result = await client.rpc("together_action", {
+          target: p.space,
+          action: p.action,
+          value: p.value ?? null,
+          page_number: p.page ?? null,
+        });
+      else if (op === "together-add") {
+        const bucket = client.storage.from("nosotros-books");
+        const path = p.space + "/" + p.id + ".pdf";
+        if (p.pdf) {
+          const upload = await bucket.upload(path, p.pdf, {
+            contentType: "application/pdf",
+          });
+          if (upload.error) throw upload.error;
+        }
+        result = await client.rpc("together_add_book", {
+          target: p.space,
+          book: p.id,
+          book_title: p.title,
+          work_key: p.catalogKey ?? null,
+        });
+        // Only remove a file after a definite database rejection. A lost response
+        // could mean the library entry was already committed.
+        if (
+          p.pdf &&
+          result.error &&
+          result.status >= 400 &&
+          result.status < 500
+        )
+          await bucket.remove([path]);
+      } else if (op === "together-pdf") {
+        result = await client.storage
+          .from("nosotros-books")
+          .download(p.space + "/" + p.id + ".pdf");
+        if (result.error) throw result.error;
+        return { ok: true, data: await result.data.arrayBuffer() };
+      } else if (op === "sub") {
         if (channel) await client.removeChannel(channel);
         channel = client
           .channel("space:" + p.space)

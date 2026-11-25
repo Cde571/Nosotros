@@ -10,10 +10,10 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'none'"
+      content="default-src 'self'; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; font-src 'self' blob:; frame-src https://www.youtube-nocookie.com; img-src 'self' data: blob: https://images.metahub.space https://upload.wikimedia.org https://thumb.wikimedia.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.github.com https://openlibrary.org https://v3-cinemeta.strem.io https://api-colombia.com https://es.wikipedia.org https://commons.wikimedia.org; object-src 'none'; base-uri 'none'"
     />
     <title>NOSOTROS. · Nuestro pequeño mundo</title>
-    <link rel="icon" href="assets/heart.svg" type="image/svg+xml" />
+    <link rel="icon" href="assets/icon.png" type="image/png" sizes="256x256" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -52,7 +52,10 @@
       </aside>
       <main>
         <header class="titlebar" id="titlebar">
-          <span class="brand">nosotros<span>.</span></span>
+          <span class="brand">
+            <img src="assets/icon.png" alt="" width="24" height="24" />
+            <span>nosotros<span class="brand-dot">.</span></span>
+          </span>
           <div class="headright">
             <button id="demoToggle" class="text-button">Ver ejemplo</button
             ><button id="status" class="status" title="Abrir conexión">
@@ -93,6 +96,10 @@
                 </button>
               </div>
               <div id="calendar" hidden></div>
+              <section id="journeyOverview" class="journey-overview" aria-labelledby="journeyOverviewTitle" hidden>
+                <h2 id="journeyOverviewTitle">Hoy y lo próximo</h2>
+                <div id="journeyHighlights"></div>
+              </section>
               <div id="agenda"></div>
               <div class="next-mini">
                 <p class="eyebrow">NUESTRO PRÓXIMO MOMENTO</p>
@@ -144,6 +151,7 @@
                 </button>
               </div>
               <div id="viajes"></div>
+              <button id="travelVideos" class="inline-add" type="button">Videos de viajes</button>
             </section>
             <section class="card milestone">
               <div class="heading"><h2>Días juntos</h2></div>
@@ -173,7 +181,9 @@
                 </button>
               </div>
               <div class="corkboard"><div id="notas"></div></div>
-              <button class="inline-add note-add" data-add="nota">+ Añadir nota</button>
+              <button class="inline-add note-add" data-add="nota">
+                + Añadir nota
+              </button>
             </section>
             <section class="card ideas">
               <div class="heading">
@@ -200,6 +210,7 @@
                 </button>
               </div>
               <div id="memories" class="posters"></div>
+              <button id="backlogVideos" class="inline-add" type="button">Buscar tráilers</button>
               <button id="roulette" class="roulette">
                 <svg><use href="icons.svg#dice" /></svg> Elegir un plan al azar
               </button>
@@ -213,6 +224,163 @@
               <h1 id="moduleTitle"></h1>
             </div>
             <button id="moduleAdd" class="primary">+ Añadir</button>
+          </div>
+          <div id="together" hidden>
+            <nav class="together-tabs" aria-label="Ver juntos">
+              <button type="button" data-media-tab="books" aria-pressed="true">
+                Biblioteca
+              </button>
+              <button type="button" data-media-tab="music" aria-pressed="false">
+                YouTube
+              </button>
+              <button type="button" data-media-tab="party" aria-pressed="false">
+                Netflix
+              </button>
+            </nav>
+            <p id="mediaConnection" class="muted" role="status"></p>
+            <section id="media-books" class="media-panel">
+              <div class="library-layout">
+                <div class="library-tools">
+                  <h2>Biblioteca de los dos</h2>
+                  <label class="file-button"
+                    >Abrir o añadir un PDF<input
+                      type="file"
+                      id="bookFile"
+                      accept=".pdf,application/pdf"
+                  /></label>
+                  <p class="muted">
+                    Hasta 20 MB. Si ya están vinculados, el PDF se guarda en su
+                    biblioteca privada.
+                  </p>
+                  <div id="sharedBooks" class="media-list"></div>
+                  <form id="bookSearch" class="media-form">
+                    <label for="bookQuery">Buscar un libro digital</label>
+                    <div class="media-input">
+                      <input
+                        id="bookQuery"
+                        type="search"
+                        required
+                        maxlength="120"
+                        placeholder="Título o autor"
+                      /><button>Buscar</button>
+                    </div>
+                  </form>
+                  <div
+                    id="bookResults"
+                    class="media-list"
+                    aria-live="polite"
+                  ></div>
+                </div>
+                <div class="reader">
+                  <div class="reader-top">
+                    <h2 id="readTitle">Lector PDF</h2>
+                    <button
+                      id="readFollow"
+                      type="button"
+                      aria-pressed="false"
+                      disabled
+                    >
+                      Seguir a mi pareja
+                    </button>
+                  </div>
+                  <p id="readStatus" class="muted" role="status">
+                    Abre un PDF para empezar.
+                  </p>
+                  <div id="readControls" class="reader-controls" hidden>
+                    <button type="button" id="readPrev">Anterior</button>
+                    <span id="readPage"></span>
+                    <button type="button" id="readNext">Siguiente</button>
+                    <button
+                      type="button"
+                      id="readShare"
+                      aria-pressed="false"
+                      disabled
+                    >
+                      Compartir mi página
+                    </button>
+                  </div>
+                  <div class="pdf-page" id="pdfPage" hidden>
+                    <canvas
+                      id="readCanvas"
+                      aria-label="Página actual del PDF"
+                    ></canvas>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section id="media-music" class="media-panel" hidden>
+              <h2>Música en YouTube</h2>
+              <form id="musicSearch" class="media-form" data-youtube="form">
+                <label for="musicQuery"
+                  >Canción, artista o enlace de YouTube</label
+                >
+                <div class="media-input">
+                  <input
+                    id="musicQuery"
+                    data-youtube="query"
+                    type="search"
+                    required
+                    maxlength="300"
+                    placeholder="Busca una canción o pega un enlace"
+                  /><button data-youtube="submit">Buscar o tocar</button>
+                </div>
+              </form>
+              <p id="musicStatus" class="muted media-message" data-youtube="status" role="status">
+                Pega un enlace para escucharlo aquí. También puedes buscar por
+                nombre.
+              </p>
+              <div class="media-list" data-youtube="results"></div>
+              <div class="youtube-player" data-youtube="player"></div>
+              <div class="actions media-actions">
+                <button data-youtube="external" type="button" hidden>
+                  Buscar en YouTube
+                </button>
+                <button data-youtube="open" type="button" hidden>
+                  Abrir en YouTube
+                </button>
+                <button id="musicShare" type="button" disabled>
+                  Compartir esta canción
+                </button>
+                <button id="musicPartner" type="button" hidden>
+                  Escuchar la canción compartida
+                </button>
+              </div>
+            </section>
+            <section id="media-party" class="media-panel" hidden>
+              <h2>Noche de Netflix</h2>
+              <p class="muted">
+                Cada quien abre Netflix con su cuenta. Compartan el título y den
+                play al terminar la cuenta regresiva.
+              </p>
+              <form id="partyForm" class="media-form">
+                <label for="partyLink">Enlace de un título de Netflix</label>
+                <div class="media-input">
+                  <input
+                    id="partyLink"
+                    type="url"
+                    required
+                    maxlength="300"
+                    placeholder="https://www.netflix.com/watch/…"
+                  /><button id="partyShare" disabled>Compartir</button>
+                </div>
+              </form>
+              <div class="actions media-actions">
+                <button id="partyOpen" type="button">Abrir Netflix</button>
+                <button id="partyStart" type="button" class="primary" disabled>
+                  Iniciar cuenta regresiva
+                </button>
+              </div>
+              <p id="partyStatus" class="muted" role="status"></p>
+              <p id="partyTimer" class="party-timer" hidden></p>
+              <a
+                id="partyExtension"
+                class="media-link"
+                href="https://www.teleparty.com/"
+                target="_blank"
+                rel="noopener"
+                >Abrir Teleparty para sincronizar pausa y reproducción</a
+              >
+            </section>
           </div>
           <div id="moduleRows"></div>
         </section>
@@ -241,23 +409,85 @@
             <option value="recuerdo">Para ver juntos</option>
             <option value="meta">Meta</option>
           </select></label
-        ><label
-          ><span id="titleLabel">Título</span><input
+        ><section id="itemCatalog" class="item-catalog" hidden>
+          <label for="catalogQuery" id="catalogLabel">Buscar en el catálogo</label>
+          <div class="media-input">
+            <input id="catalogQuery" type="search" maxlength="120" />
+            <button id="catalogSearch" type="button">Buscar</button>
+          </div>
+          <p id="catalogStatus" class="muted media-message" role="status"></p>
+          <div id="catalogResults" class="catalog-results"></div>
+          <div id="catalogChoice" class="catalog-choice" hidden></div>
+        </section><label
+          ><span id="titleLabel">Título</span
+          ><input
             id="title"
             required
             maxlength="160"
             placeholder="Algo que les haga ilusión" /></label
-        ><label id="dateField">Fecha y hora<input type="datetime-local" id="day" /></label
+        ><label id="dateField"
+          >Fecha y hora<input type="datetime-local" id="day" /></label
         ><label
-          ><span id="detailLabel">Detalles</span><textarea
+          ><span id="detailLabel">Detalles</span
+          ><textarea
             id="detail"
             maxlength="2000"
             placeholder="El lugar, un recordatorio, ese pequeño detalle…"
           ></textarea>
         </label>
         <p id="editorError" class="form-message" role="alert"></p>
-        <button id="editorSave" class="primary full" type="submit">Guardar momento</button>
+        <button id="editorSave" class="primary full" type="submit">
+          Guardar momento
+        </button>
       </form>
+    </dialog>
+    <dialog id="scheduleDialog" aria-labelledby="scheduleTitle">
+      <form id="scheduleForm">
+        <div class="heading">
+          <h2 id="scheduleTitle">Poner fecha</h2>
+          <button type="button" data-close="scheduleDialog" class="iconbtn" aria-label="Cerrar planificación">×</button>
+        </div>
+        <p class="muted" id="scheduleIdea"></p>
+        <label>Fecha y hora del plan<input id="scheduleDay" type="datetime-local" required /></label>
+        <p id="scheduleError" class="form-message" role="alert"></p>
+        <button id="scheduleSave" class="primary full">Añadir a la agenda</button>
+      </form>
+    </dialog>
+    <dialog id="memoryDialog" aria-labelledby="memoryDialogTitle">
+      <form id="memoryForm">
+        <div class="heading">
+          <h2 id="memoryDialogTitle">Guardar recuerdo</h2>
+          <button type="button" data-close="memoryDialog" class="iconbtn" aria-label="Cerrar recuerdo">×</button>
+        </div>
+        <label>Título del recuerdo<input id="memoryTitle" maxlength="160" required /></label>
+        <label>Nota del recuerdo<textarea id="memoryNote" maxlength="2000" placeholder="¿Qué quieren recordar de este día?"></textarea></label>
+        <label>Foto del recuerdo<input id="memoryPhoto" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+        <img id="memoryPreview" alt="Vista previa de la foto del recuerdo" hidden />
+        <button id="memoryRemovePhoto" type="button" class="text-button" hidden>Quitar foto</button>
+        <p id="memoryError" class="form-message" role="alert"></p>
+        <button id="memorySave" class="primary full">Guardar recuerdo</button>
+      </form>
+    </dialog>
+    <dialog id="itemYoutube" aria-labelledby="itemYoutubeTitle">
+      <div class="heading">
+        <h2 id="itemYoutubeTitle">YouTube</h2>
+        <button type="button" data-close="itemYoutube" class="iconbtn" aria-label="Cerrar reproductor">×</button>
+      </div>
+      <form class="media-form" data-youtube="form">
+        <label for="itemYoutubeQuery">Buscar o pegar un enlace de YouTube</label>
+        <div class="media-input">
+          <input id="itemYoutubeQuery" data-youtube="query" type="search" required maxlength="300" />
+          <button data-youtube="submit">Buscar</button>
+        </div>
+      </form>
+      <p class="muted media-message" role="status" data-youtube="status"></p>
+      <div class="media-list" data-youtube="results"></div>
+      <div class="youtube-player" data-youtube="player"></div>
+      <div class="actions media-actions">
+        <button type="button" data-youtube="external" hidden>Buscar en YouTube</button>
+        <button type="button" data-youtube="open" hidden>Abrir en YouTube</button>
+        <button type="button" id="saveItemVideo" hidden>Guardar video en la ficha</button>
+      </div>
     </dialog>
     <dialog id="config">
       <div class="heading">
@@ -370,10 +600,20 @@
             autocomplete="off" /></label
         ><button id="connect">Conectar servicio</button>
       </details>
+      <details>
+        <summary>Actualizaciones de la app</summary>
+        <p class="muted" id="updateVersion"></p>
+        <button id="checkUpdate" type="button">Buscar actualizaciones</button>
+        <p id="updateStatus" class="form-message" role="status"></p>
+      </details>
     </dialog>
     <div id="toast" role="status" aria-live="polite"></div>
     <script src="bridge.js"></script>
     <script src="cloud-config.js"></script>
+    <script src="catalog.js"></script>
+    <script src="youtube-player.js"></script>
+    <script src="together.js"></script>
+    <script src="journey.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

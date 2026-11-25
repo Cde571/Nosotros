@@ -8,11 +8,17 @@ const { PGlite } = require("@electric-sql/pglite");
 test("two-person pairing, RLS, profile privacy, votes and offline conflicts", async () => {
   const db = new PGlite();
   try {
-    await db.exec(`create role anon; create role authenticated; create schema auth; create schema extensions;
+    await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth; create schema extensions;
       create table auth.users(id uuid primary key);
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       grant usage on schema auth,public to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;
-      create publication supabase_realtime;`);
+      create publication supabase_realtime;
+      create schema storage;
+      create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+      create table storage.objects (bucket_id text, name text, owner_id text);
+      alter table storage.objects enable row level security;
+      grant usage on schema storage to authenticated,anon;
+      grant select,insert,delete on storage.objects to authenticated;`);
     // No extension is needed for the latest invite implementation.
     await db.exec(
       fs
@@ -68,7 +74,12 @@ test("two-person pairing, RLS, profile privacy, votes and offline conflicts", as
     assert.equal(status.approved, true);
     assert.equal(status.members.length, 2);
     assert.equal(
-      Number(await rpc("select revision as value from public.pair_updates where space_id=$1", [space])),
+      Number(
+        await rpc(
+          "select revision as value from public.pair_updates where space_id=$1",
+          [space],
+        ),
+      ),
       2,
     );
     await assert.rejects(
@@ -77,7 +88,11 @@ test("two-person pairing, RLS, profile privacy, votes and offline conflicts", as
     );
     await as(stranger);
     assert.equal(
-      (await db.query("select * from public.pair_updates where space_id=$1", [space])).rows.length,
+      (
+        await db.query("select * from public.pair_updates where space_id=$1", [
+          space,
+        ])
+      ).rows.length,
       0,
     );
     await assert.rejects(
@@ -88,6 +103,20 @@ test("two-person pairing, RLS, profile privacy, votes and offline conflicts", as
       "select public.create_space('Other') as value",
     );
     assert.notEqual(otherSpace, space);
+    const reserve = (target, who) =>
+      rpc("select public.take_youtube_search($1,$2) as value", [target, who]);
+    await assert.rejects(() => reserve(space, alice), /permission denied/);
+    await db.exec("reset role; set role service_role");
+    assert.equal(await reserve(space, stranger), "pair_required");
+    assert.equal(await reserve(otherSpace, stranger), "pair_required");
+    assert.equal(await reserve(space, alice), "allowed");
+    assert.equal(await reserve(space, bob), "slow_down");
+    await db.exec("reset role");
+    await db.query(`update private.youtube_search_requests
+      set requested_at = now() - interval '1 day' where space_id = $1`, [space]);
+    await db.exec("set role service_role");
+    assert.equal(await reserve(space, bob), "allowed");
+    await as(stranger);
     const expired = await rpc("select public.make_invite() as value");
     await db.exec("reset role");
     await db.query(
@@ -179,16 +208,73 @@ test("two-person pairing, RLS, profile privacy, votes and offline conflicts", as
     status = await rpc("select public.my_space() as value");
     assert.equal(status.members.find((x) => x.id === alice).photo, photo);
     assert.equal(
-      Number(await rpc("select revision as value from public.pair_updates where space_id=$1", [space])),
+      Number(
+        await rpc(
+          "select revision as value from public.pair_updates where space_id=$1",
+          [space],
+        ),
+      ),
       3,
     );
-    const note = { ...payload, id: randomUUID(), kind: "nota", title: "Para los dos", detail: "Una nota de Bob" };
-    const sharedNote = await rpc("select public.save_item($1) as value", [JSON.stringify(note)]);
+    const note = {
+      ...payload,
+      id: randomUUID(),
+      kind: "nota",
+      title: "Para los dos",
+      detail: "Una nota de Bob",
+    };
+    const sharedNote = await rpc("select public.save_item($1) as value", [
+      JSON.stringify(note),
+    ]);
     await as(alice);
-    assert.equal(await rpc("select detail as value from public.items where id=$1", [note.id]), note.detail);
-    await rpc("select public.save_item($1) as value", [JSON.stringify({ ...note, detail:"También de Alice", expected_version:sharedNote.version })]);
+    assert.equal(
+      await rpc("select detail as value from public.items where id=$1", [
+        note.id,
+      ]),
+      note.detail,
+    );
+    await rpc("select public.save_item($1) as value", [
+      JSON.stringify({
+        ...note,
+        detail: "También de Alice",
+        expected_version: sharedNote.version,
+      }),
+    ]);
     await as(bob);
-    assert.equal(await rpc("select detail as value from public.items where id=$1", [note.id]), "También de Alice");
+    assert.equal(
+      await rpc("select detail as value from public.items where id=$1", [
+        note.id,
+      ]),
+      "También de Alice",
+    );
+    const film = {
+      ...payload,
+      id: randomUUID(),
+      kind: "recuerdo",
+      title: "Interstellar",
+    };
+    const media = { id: "tt0816692", name: film.title, youtube: "zSWdZVtXT7E" };
+    const saveMedia = (value) =>
+      rpc("select public.save_item($1) as value", [JSON.stringify(value)]);
+    const savedFilm = await saveMedia({ ...film, media });
+    await as(alice);
+    assert.deepEqual(
+      await rpc("select media as value from public.items where id=$1", [film.id]),
+      media,
+    );
+    const legacy = await saveMedia({ ...film, done: true, expected_version: savedFilm.version });
+    assert.deepEqual(legacy.media, media);
+    await assert.rejects(
+      () => saveMedia({ ...film, media: { youtube: "invalid" }, expected_version: legacy.version }),
+      /Ficha multimedia inválida/,
+    );
+    await assert.rejects(
+      () => saveMedia({ ...film, done: true, media: null, expected_version: savedFilm.version }),
+      /Tu pareja también editó/,
+    );
+    const unlinked = await saveMedia({ ...film, done: true, media: null, expected_version: legacy.version });
+    assert.equal(unlinked.media, null);
+    await as(bob);
     let voted = await rpc("select to_jsonb(public.vote_item($1)) as value", [
       id,
     ]);
@@ -245,6 +331,130 @@ test("two-person pairing, RLS, profile privacy, votes and offline conflicts", as
     await assert.rejects(
       () => db.query("select * from public.items"),
       /permission denied/,
+    );
+
+    await as(alice);
+    const proposal = await saveMedia({ ...payload, id: randomUUID(), title: "Paseo al parque" });
+    const date = "2026-11-28T16:30";
+    const journey = (source, action, details = {}) =>
+      rpc("select public.journey_action($1,$2,$3,$4) as value",
+        [space, source, action, JSON.stringify(details)]);
+    await assert.rejects(() => journey(proposal.id, "accept", { expected: proposal.version }), /tu pareja/i);
+    await assert.rejects(() => journey(proposal.id, "schedule", { day: date }), /se apunte/);
+    await as(bob);
+    const accepted = await journey(proposal.id, "accept", { expected: proposal.version });
+    assert.equal(accepted.accepted_by, bob);
+    const editedProposal = await saveMedia({ ...proposal, detail: "Llevar el picnic", expected_version: accepted.version });
+    assert.equal(editedProposal.accepted_by, null);
+    await assert.rejects(() => journey(proposal.id, "accept", { expected: proposal.version }), /propuesta cambió/);
+    await journey(proposal.id, "accept", { expected: editedProposal.version });
+    const plan = await journey(proposal.id, "schedule", { day: date });
+    assert.equal(plan.idea_id, proposal.id);
+    assert.equal(plan.day, date);
+    assert.equal((await journey(proposal.id, "schedule", { day: "2026-11-29T17:30" })).id, plan.id);
+    await assert.rejects(() => journey(plan.id, "memory", { title: "Picnic", note: "Hicimos un picnic" }), /Completa el plan/);
+    await saveMedia({ ...plan, done: true, expected_version: plan.version });
+    const memoryPhoto = randomUUID();
+    const photoPath = space + "/" + plan.id + "/" + memoryPhoto + ".jpg";
+    await assert.rejects(() => journey(plan.id, "memory", { title: "Picnic", photo: memoryPhoto }), /foto aún/);
+    await db.query("insert into storage.objects values ('nosotros-memories',$1,$2)", [photoPath, bob]);
+    const memory = await journey(plan.id, "memory", { title: "Picnic", photo: memoryPhoto });
+    assert.equal(memory.plan_id, plan.id);
+    assert.equal(memory.memory_photo, memoryPhoto);
+    assert.equal((await journey(plan.id, "memory", { title: "Picnic", photo: memoryPhoto })).id, memory.id);
+    await as(alice);
+    assert.equal(await rpc("select count(*)::int as value from storage.objects where name=$1", [photoPath]), 1);
+    const editedMemory = await journey(plan.id, "memory", { title: "Nuestro picnic", note: "Volveremos", photo: memoryPhoto, expected: memory.version });
+    await assert.rejects(() => journey(plan.id, "memory", { title: "Otro título", photo: memoryPhoto, expected: memory.version }), /recuerdo cambió/);
+    assert.equal(editedMemory.detail, "Volveremos");
+    await as(stranger);
+    await assert.rejects(() => journey(plan.id, "memory", { title: "Picnic", photo: memoryPhoto }), /Vincula/);
+    assert.equal(await rpc("select count(*)::int as value from storage.objects where name=$1", [photoPath]), 0);
+
+    await as(alice);
+    const book = randomUUID();
+    const objectPath = space + "/" + book + ".pdf";
+    await db.query(
+      "insert into storage.objects values ('nosotros-books',$1,$2)",
+      [objectPath, alice],
+    );
+    await rpc("select public.together_add_book($1,$2,'Nuestro PDF',null)", [
+      space,
+      book,
+    ]);
+    assert.equal(
+      (
+        await rpc("select public.together_action($1,'reading',$2,3) as value", [
+          space,
+          book,
+        ])
+      ).room.page,
+      3,
+    );
+    await as(bob);
+    assert.equal(
+      (await rpc("select public.together_state($1) as value", [space])).room
+        .book_id,
+      book,
+    );
+    assert.equal(
+      (
+        await db.query("select * from storage.objects where name=$1", [
+          objectPath,
+        ])
+      ).rows.length,
+      1,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "delete from storage.objects where name=$1 returning name",
+          [objectPath],
+        )
+      ).rows.length,
+      0,
+    );
+    await rpc("select public.together_action($1,'netflix','80057281',null)", [
+      space,
+    ]);
+    const countdown = await rpc(
+      "select public.together_action($1,'countdown',null,null) as value",
+      [space],
+    );
+    assert.equal(countdown.room.page, 3);
+    assert.ok(
+      Date.parse(countdown.room.starts_at) > Date.parse(countdown.server_now),
+    );
+    await rpc(
+      "select public.together_action($1,'youtube','M7lc1UVf-VE',null)",
+      [space],
+    );
+    await as(alice);
+    assert.equal(
+      (await rpc("select public.together_state($1) as value", [space])).room
+        .youtube_id,
+      "M7lc1UVf-VE",
+    );
+    await as(stranger);
+    assert.equal(
+      (
+        await db.query("select * from storage.objects where name=$1", [
+          objectPath,
+        ])
+      ).rows.length,
+      0,
+    );
+    await assert.rejects(
+      () => rpc("select public.together_state($1) as value", [space]),
+      /Espacio no disponible/,
+    );
+    await assert.rejects(
+      () =>
+        db.query(
+          "insert into storage.objects values ('nosotros-books',$1,$2)",
+          [space + "/" + randomUUID() + ".pdf", stranger],
+        ),
+      /row-level security/,
     );
   } finally {
     await db.close();

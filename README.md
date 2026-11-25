@@ -27,6 +27,24 @@ Las fotos se recortan a JPEG de 160 × 160. Cada persona elige su propia foto de
 
 El acceso rápido usa una identidad anónima autenticada de Supabase guardada en este dispositivo. **Recuperar o proteger mi acceso** permite asociar un correo y contraseña a esa misma identidad, o iniciar sesión desde otro dispositivo. Si se elimina el perfil del dispositivo antes de asociar un correo, ese acceso no se podrá recuperar desde la app.
 
+## De una idea a un recuerdo
+
+Con la pareja vinculada, agrega una propuesta en **Ideas**. La otra persona puede elegir **Me apunto** y cualquiera puede pulsar **Poner fecha** para crear el plan en la agenda. Una vez completado, **Guardar recuerdo** permite escribir una nota, añadir una foto o guardar ambas cosas. Ambos integrantes pueden editarlo desde **Recuerdos**.
+
+En Inicio, **Hoy y lo próximo** enlaza el siguiente plan, una propuesta por responder y la última nota de tu pareja cuando están disponibles.
+
+## Leer, escuchar y ver juntos
+
+Desde **Backlog / Ver juntos**, pulsa **+** para buscar una película o serie en Cinemeta, ver su portada y guardar una ficha con enlace a IMDb. En **Próximos viajes y planes**, puedes elegir una ciudad o municipio de API Colombia. La ficha muestra una foto de Wikimedia Commons y sus créditos cuando encuentra una imagen disponible.
+
+En las fichas de películas y viajes, abre **Tráiler** o **Videos** para buscar en YouTube o pegar un enlace. **Guardar video en la ficha** conserva ese video para ambos integrantes. Los accesos del tablero abren el mismo reproductor dentro de Nosotros para explorar sin asociar el video a una ficha.
+
+En **Ver juntos → Biblioteca**, abre un PDF de hasta 20 MB. Con la pareja vinculada, el archivo queda en su biblioteca privada. Activa **Compartir mi página** y haz que tu pareja pulse **Seguir a mi pareja**. El buscador de Open Library permite guardar enlaces para consultar, leer o pedir prestados los títulos disponibles.
+
+En **YouTube**, busca por canción o artista desde un espacio vinculado y selecciona un resultado para abrirlo en el reproductor. También puedes pegar un enlace y compartir el video con tu pareja. El botón **Buscar en YouTube** está disponible cuando la búsqueda interna no puede mostrar resultados.
+
+En **Netflix**, comparte el enlace de un título y arranca la cuenta regresiva cuando ambos tengan el video abierto. La app coordina el inicio. El enlace a Teleparty permite usar su propia extensión para sincronizar los controles del reproductor.
+
 ## Preparación única del servicio
 
 La compilación de este repositorio incluye la conexión pública al proyecto **Nosotros** mediante `cloud-config.js`. Para vincular la pareja desde una instalación, basta con usar el flujo por código. Si necesitas configurar otro proyecto Supabase, usa el conector de Codex o un token de administración autorizado para aplicar el esquema. No compartas tokens administrativos.
@@ -41,6 +59,8 @@ npm run build:native
 El script comprueba las tablas existentes, aplica el esquema o la actualización, activa los accesos anónimos, verifica RLS y escribe únicamente URL y clave **públicas** en `cloud-config.js`. Nunca incluye el token de administración en el instalador. Se ejecuta una sola vez por el responsable del proyecto, no por cada integrante de la pareja.
 
 Si usas SQL Editor en un proyecto nuevo, ejecuta `schema.sql` y `migration-0.2.sql`. A continuación, ejecuta las migraciones de `supabase/migrations` en orden. En un proyecto existente, aplica las migraciones que falten desde su versión actual. Activa los accesos anónimos en Supabase Auth y configura la URL y clave pública en `cloud-config.js` antes de compilar. Realtime avisa a los dos integrantes cuando alguien se vincula o actualiza una nota, foto o estado.
+
+Para activar la búsqueda musical, habilita [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com) en Google Cloud y crea una clave restringida a esa API. Guarda la clave como `YOUTUBE_API_KEY` en [Edge Function Secrets](https://supabase.com/dashboard/project/_/functions/secrets) del proyecto. Despliega `supabase/functions/youtube-search` con `supabase functions deploy youtube-search --project-ref <proyecto>` después de aplicar las migraciones. La función verifica el token con Supabase Auth y limita la búsqueda a parejas vinculadas. La clave permanece en Supabase.
 
 ## Compilar Windows
 

@@ -10,20 +10,34 @@
     "cloud-client.cjs",
     "index.html",
     "app.js",
+    "together.js",
+    "catalog.js",
+    "youtube-player.js",
+    "journey.js",
     "style.css",
     "package.json",
     "cloud-config.js",
     "bridge.js",
     "icons.svg",
-    "assets/**/*"
+    "assets/**/*",
+    {
+      "from": "node_modules/pdfjs-dist",
+      "to": "pdfjs",
+      "filter": [
+        "build/pdf.mjs",
+        "build/pdf.worker.mjs",
+        "cmaps/**",
+        "standard_fonts/**",
+        "wasm/**",
+        "LICENSE"
+      ]
+    }
   ],
   "win": {
     "target": [
       {
         "target": "nsis",
-        "arch": [
-          "x64"
-        ]
+        "arch": ["x64"]
       }
     ],
     "icon": "assets/icon.ico"

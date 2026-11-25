@@ -6,6 +6,7 @@ const {
   Menu,
   nativeImage,
   Notification,
+  shell,
 } = require("electron");
 const path = require("node:path");
 const { createClient } = require("@supabase/supabase-js");
@@ -23,6 +24,7 @@ function make() {
     minHeight: 420,
     frame: false,
     title: "NOSOTROS.",
+    icon: path.join(__dirname, "assets", "icon.ico"),
     backgroundColor: "#141413",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -42,6 +44,15 @@ function make() {
   win.webContents.on("will-navigate", (event) => event.preventDefault());
   win.webContents.session.setPermissionRequestHandler(
     (_contents, _permission, callback) => callback(false),
+  );
+  win.webContents.session.webRequest.onBeforeSendHeaders(
+    { urls: ["https://www.youtube-nocookie.com/embed/*"] },
+    (details, callback) => {
+      const headers = details.requestHeaders;
+      if (!Object.keys(headers).some((key) => key.toLowerCase() === "referer"))
+        headers.Referer = "https://nosotros.local/";
+      callback({ requestHeaders: headers });
+    },
   );
 }
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -94,3 +105,25 @@ ipcMain.handle("notify", (_, title, body) => {
     }).show();
 });
 ipcMain.handle("cloud", (_event, op, p) => cloud(op, p));
+ipcMain.handle("get-version", () => app.getVersion());
+ipcMain.on("open-media", (_, value) => {
+  try {
+    const url = new URL(value);
+    const hosts = [
+      "openlibrary.org",
+      "www.netflix.com",
+      "www.youtube.com",
+      "www.teleparty.com",
+      "www.imdb.com",
+      "commons.wikimedia.org",
+    ];
+    if (
+      url.protocol === "https:" &&
+      !url.port &&
+      !url.username &&
+      !url.password &&
+      hosts.includes(url.hostname)
+    )
+      shell.openExternal(url.href).catch(() => {});
+  } catch {}
+});

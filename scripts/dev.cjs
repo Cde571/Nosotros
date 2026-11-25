@@ -10,6 +10,10 @@ const allowed = new Set([
   "cloud-config.js",
   "bridge.js",
   "icons.svg",
+  "together.js",
+  "catalog.js",
+  "youtube-player.js",
+  "journey.js",
 ]);
 const mime = {
   ".html": "text/html",
@@ -19,7 +23,11 @@ const mime = {
   ".webp": "image/webp",
   ".png": "image/png",
   ".woff2": "font/woff2",
+  ".mjs": "text/javascript",
+  ".wasm": "application/wasm",
 };
+const pdfFiles =
+  /^(?:build\/(?:pdf|pdf\.worker)\.mjs|(?:cmaps|standard_fonts|wasm)\/[A-Za-z0-9_.-]+)$/;
 (async () => {
   const context = await esbuild.context({
     entryPoints: [path.join(root, "browser-bridge.js")],
@@ -36,10 +44,14 @@ const mime = {
         /^\//,
         "",
       ) || "index.html";
-    const full = path.resolve(root, relative);
+    const pdf = relative.startsWith("pdfjs/") ? relative.slice(6) : null;
+    const isPdfAsset = pdf !== null && pdfFiles.test(pdf);
+    const full = isPdfAsset
+      ? path.join(root, "node_modules", "pdfjs-dist", pdf)
+      : path.resolve(root, relative);
     if (
       !full.startsWith(root + path.sep) ||
-      (!allowed.has(relative) && !relative.startsWith("assets/"))
+      (!allowed.has(relative) && !relative.startsWith("assets/") && !isPdfAsset)
     ) {
       res.writeHead(404);
       return res.end("No encontrado");

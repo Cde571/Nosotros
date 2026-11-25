@@ -1,0 +1,5 @@
+project_id = "nosotros"
+
+[functions.youtube-search]
+# The handler verifies the user with Supabase Auth, including asymmetric JWTs.
+verify_jwt = false
