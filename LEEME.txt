@@ -1,9 +1,9 @@
-NOSOTROS. 0.1 — Windows x64
+NOSOTROS. 0.2 — Windows x64
 
 Instalador: dist-native\Nosotros-Setup.exe. Windows 64 bits con Microsoft Edge WebView2 Runtime (habitualmente preinstalado en Windows 11).
 1. Instala el mismo EXE en ambos computadores. Windows puede mostrar SmartScreen porque el instalador no está firmado.
 2. Puedes usar Inicio, Agenda, Compras, Viajes, Ideas, Buzón, Recuerdos y Metas sin configurar un servidor.
-3. Para conectar por internet, crea un proyecto en https://supabase.com y ejecuta schema.sql UNA VEZ en SQL Editor. En Authentication habilita Email. Mantén las políticas de seguridad activas.
+3. Para conectar por internet, crea un proyecto en https://supabase.com y ejecuta schema.sql UNA VEZ en SQL Editor y luego migration-0.2.sql. Si ya instalaste el esquema de v0.1, ejecuta solo la migración. En Authentication habilita Email. Mantén las políticas de seguridad activas.
 4. En ambos equipos abre ⚙ y coloca la misma URL HTTPS del proyecto y su clave pública publishable/anon (NO service_role ni secret). Conectar servicio.
 5. Cada persona registra su propio correo y contraseña, confirma el correo si se requiere e inicia sesión.
 6. El primero pulsa Crear espacio y Generar código. El código dura 30 minutos. El segundo pulsa Vincularme con ese código. El primero aprueba la solicitud.

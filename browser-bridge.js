@@ -1,6 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 let sb,channel,session;const callbacks={};const emit=(n,v)=>(callbacks[n]||[]).forEach(f=>f(v));
-window.desktop={widget:async on=>{window.chrome.webview.postMessage({op:'widget',on});return on},notify:(title,body)=>window.chrome.webview.postMessage({op:'notify',title,body}),on:(n,f)=>(callbacks[n]??=[]).push(f),cloud:async(op,p={})=>{try{
+window.desktop={window:action=>window.chrome.webview.postMessage({op:'window',action}),widget:async on=>{window.chrome.webview.postMessage({op:'widget',on});return on},notify:(title,body)=>window.chrome.webview.postMessage({op:'notify',title,body}),on:(n,f)=>(callbacks[n]??=[]).push(f),cloud:async(op,p={})=>{try{
 if(op==='init'){if(channel&&sb)await sb.removeChannel(channel);sb=createClient(p.url,p.key,{auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});session=null;if(p.session){let r=await sb.auth.setSession(p.session);if(r.error)throw r.error;session=r.data.session;}sb.auth.onAuthStateChange((e,s)=>{session=s;emit('session',s?{access_token:s.access_token,refresh_token:s.refresh_token}:null)});return {ok:true,user:session?.user?.id||null};}
 if(!sb)throw Error('Configura la conexión primero');let r;
 if(op==='signup')r=await sb.auth.signUp({email:p.email,password:p.password});
@@ -10,6 +10,7 @@ else if(op==='status')r=await sb.rpc('my_space');
 else if(op==='create')r=await sb.rpc('create_space',{display:p.name});
 else if(op==='invite')r=await sb.rpc('make_invite');
 else if(op==='join')r=await sb.rpc('join_space',{invite_code:p.code,display:p.name});
+else if(op==='profile')r=await sb.rpc('update_profile',{display:p.name,avatar:p.photo,feeling:p.mood,since:p.anniversary});
 else if(op==='approve')r=await sb.rpc('approve_member',{member_id:p.id});
 else if(op==='list')r=await sb.from('items').select('*').eq('space_id',p.space);
 else if(op==='save')r=await sb.from('items').upsert(p.item);

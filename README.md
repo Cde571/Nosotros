@@ -6,11 +6,11 @@ Un espacio digital privado para dos: calendario, compras, viajes, ideas, recuerd
 
 [Nosotros-Setup.exe (Windows x64)](https://github.com/Cde571/Nosotros/releases/latest/download/Nosotros-Setup.exe)
 
-Requiere Windows de 64 bits con Microsoft Edge WebView2 Runtime. El instalador no está firmado. La versión 0.1 permite trabajar localmente; la sincronización por internet requiere configurar Supabase.
+Requiere Windows de 64 bits con Microsoft Edge WebView2 Runtime. El instalador no está firmado. La versión 0.2 incluye una interfaz editorial sin barra blanca, fotografías de perfil elegidas por cada persona y estados de ánimo. Funciona localmente; la sincronización por internet requiere configurar Supabase.
 
 ## Vinculación de pareja
 
-1. Crea un proyecto Supabase y ejecuta `schema.sql` una sola vez en SQL Editor.
+1. Crea un proyecto Supabase y ejecuta `schema.sql` una sola vez en SQL Editor, seguido de `migration-0.2.sql`. Si ya aplicaste el esquema anterior, ejecuta únicamente la migración. Para distribuir un instalador preconfigurado, rellena `cloud-config.js` con URL y clave pública y vuelve a compilar.
 2. En ambos equipos instala la aplicación, abre Ajustes y configura la misma URL y clave pública del proyecto (nunca la clave secreta).
 3. Cada integrante crea una cuenta independiente e inicia sesión.
 4. El primer integrante crea el espacio y genera un código de invitación de 30 minutos. El segundo lo introduce y el primero aprueba la solicitud.
